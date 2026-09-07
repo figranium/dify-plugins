@@ -24,17 +24,19 @@ jobs:
           ref: 953236f662c2cdd93ece77b4e880494d6da2a6e6
           path: plugin-source
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
 
-      - name: Install Dify plugin CLI
-        run: pip install 'dify-plugin>=0.10.2,<0.11.0'
+      - name: Download Dify plugin daemon
+        run: |
+          gh release download -R langgenius/dify-plugin-daemon --pattern 'dify-plugin-linux-amd64' --dir /tmp
+          chmod +x /tmp/dify-plugin-linux-amd64
+        env:
+          GH_TOKEN: ${{ github.token }}
 
       - name: Build plugin package
         run: |
-          dify plugin package plugin-source --output_path /tmp/figranium-0.0.1.difypkg
+          /tmp/dify-plugin-linux-amd64 plugin package plugin-source --output_path /tmp/figranium-0.0.1.difypkg
           mkdir -p Figranium
           cp /tmp/figranium-0.0.1.difypkg Figranium/figranium-0.0.1.difypkg
 
