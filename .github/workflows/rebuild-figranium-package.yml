@@ -1,0 +1,48 @@
+name: Rebuild Figranium Dify package
+
+on:
+  push:
+    paths:
+      - .github/workflows/rebuild-figranium-package.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout marketplace fork
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Checkout Figranium Dify source
+        uses: actions/checkout@v4
+        with:
+          repository: figranium/figranium-dify
+          ref: 953236f662c2cdd93ece77b4e880494d6da2a6e6
+          path: plugin-source
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dify plugin CLI
+        run: pip install 'dify-plugin>=0.10.2,<0.11.0'
+
+      - name: Build plugin package
+        run: |
+          dify plugin package plugin-source --output_path /tmp/figranium-0.0.1.difypkg
+          mkdir -p Figranium
+          cp /tmp/figranium-0.0.1.difypkg Figranium/figranium-0.0.1.difypkg
+
+      - name: Commit rebuilt package
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Figranium/figranium-0.0.1.difypkg
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: rebuild Figranium plugin package with requirements'
+          git push origin HEAD:main
