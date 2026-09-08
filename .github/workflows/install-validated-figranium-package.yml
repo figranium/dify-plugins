@@ -1,0 +1,48 @@
+name: Install validated Figranium package
+
+on:
+  push:
+    paths:
+      - .github/workflows/install-validated-figranium-package.yml
+
+concurrency:
+  group: install-validated-figranium-package
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  install-package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout only required paths
+        uses: actions/checkout@v4
+        with:
+          filter: blob:none
+          sparse-checkout: |
+            Figranium
+            .github/workflows/install-validated-figranium-package.yml
+          sparse-checkout-cone-mode: false
+
+      - name: Download validated package artifact
+        run: |
+          mkdir -p /tmp/figranium-package
+          gh run download 34236578643 \
+            -R figranium/figranium-dify \
+            -n figranium-dify-package \
+            -D /tmp/figranium-package
+          test -f /tmp/figranium-package/figranium-0.0.1.difypkg
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Replace marketplace package and remove helper
+        run: |
+          cp /tmp/figranium-package/figranium-0.0.1.difypkg Figranium/figranium-0.0.1.difypkg
+          rm .github/workflows/install-validated-figranium-package.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Figranium/figranium-0.0.1.difypkg .github/workflows/install-validated-figranium-package.yml
+          git commit -m 'fix: replace Figranium package with validated build'
+          git push
